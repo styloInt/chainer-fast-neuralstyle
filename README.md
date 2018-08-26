@@ -1,7 +1,11 @@
 # Chainer implementation of "Perceptual Losses for Real-Time Style Transfer and Super-Resolution"
 Fast artistic style transfer by using feed forward network.
 
-**checkout [resize-conv](https://github.com/yusuketomoto/chainer-fast-neuralstyle/tree/resize-conv) branch which provides better result.**
+# What change from yusekemoto version
+- Insteand of using tanh as activation function, I use sigmoid. Using tanh, I was having a lot of artefacts (black hole, white hole, points, etc ...) Using sigmoid seems to have solve the issue. So all the models trained with yusekemoto version should not work.
+- Loss function and results saved at each checkpoint.
+- Can resume a training
+
 
 <img src="https://raw.githubusercontent.com/yusuketomoto/chainer-fast-neuralstyle/master/sample_images/tubingen.jpg" height="200px">
 
@@ -40,7 +44,6 @@ python train.py -s <style_image_path> -d <training_dataset_path> -g <use_gpu ? g
 python generate.py <input_image_path> -m <model_path> -o <output_image_path> -g <use_gpu ? gpu_id : -1>
 ```
 
-This repo has pretrained models as an example.
 
 - example:
 ```
@@ -52,7 +55,7 @@ python generate.py sample_images/tubingen.jpg -m models/seurat.model -o sample_i
 ```
 
 #### Transfer only style but not color (**--keep_colors option**)
-`python generate.py <input_image_path> -m <model_path> -o <output_image_path> -g <use_gpu ? gpu_id : -1> --keep_colors`
+`python generate.py <input_image_path> -m <model_path> -o <output_image_path> -g <use_gpu ? gpu_id : -1> --keep_colors`rig
 
 <img src="https://raw.githubusercontent.com/yusuketomoto/chainer-fast-neuralstyle/master/sample_images/output_1.jpg" height="200px">
 <img src="https://raw.githubusercontent.com/yusuketomoto/chainer-fast-neuralstyle/master/sample_images/output_keep_colors_1.jpg" height="200px">
@@ -62,15 +65,11 @@ python generate.py sample_images/tubingen.jpg -m models/seurat.model -o sample_i
 
 
 ## A collection of pre-trained models
-Fashizzle Dizzle created pre-trained models collection repository, [chainer-fast-neuralstyle-models](https://github.com/gafr/chainer-fast-neuralstyle-models). You can find a variety of models.
+Coming soon ! 
 
 ## Difference from paper
 - Convolution kernel size 4 instead of 3.
 - Training with batchsize(n>=2) causes unstable result.
-
-## No Backward Compatibility
-##### Jul. 19, 2016
-This version is not compatible with the previous versions. You can't use models trained by the previous implementation. Sorry for the inconvenience!
 
 ## License
 MIT
