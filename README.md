@@ -1,11 +1,13 @@
 # Chainer implementation of "Perceptual Losses for Real-Time Style Transfer and Super-Resolution"
 Fast artistic style transfer by using feed forward network.
 
-# What change from yusekemoto version
+# What changes from yusekemoto version
 - Insteand of using tanh as activation function, I use sigmoid. Using tanh, I was having a lot of artefacts (black hole, white hole, points, etc ...) Using sigmoid seems to have solve the issue. So all the models trained with yusekemoto version should not work.
-- Loss function and results saved at each checkpoint.
+- Loss graph and results saved at each checkpoint.
 - Can resume a training
-
+- If the output path for saving the models contains directory that does not exists, they are created
+- Compatible with chainer 4.1
+- Train with size 512 by default and save checkpoints every 1000 iteration
 
 <img src="https://raw.githubusercontent.com/yusuketomoto/chainer-fast-neuralstyle/master/sample_images/tubingen.jpg" height="200px">
 
