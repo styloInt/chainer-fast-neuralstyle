@@ -1,7 +1,7 @@
 # Chainer implementation of "Perceptual Losses for Real-Time Style Transfer and Super-Resolution"
 Fast artistic style transfer by using feed forward network.
 
-# What change from yusekemoto version
+# What changes from yusekemoto version
 - Insteand of using tanh as activation function, I use sigmoid. Using tanh, I was having a lot of artefacts (black hole, white hole, points, etc ...) Using sigmoid seems to have solve the issue. So all the models trained with yusekemoto version should not work.
 - Loss graph and results saved at each checkpoint.
 - Can resume a training
