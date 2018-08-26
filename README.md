@@ -6,7 +6,7 @@ Fast artistic style transfer by using feed forward network.
 - Loss function and results saved at each checkpoint.
 - Can resume a training
 - Compatible with chainer 4.1
-
+- Train with size 512 by default and save checkpoints every 1000 iteration
 
 <img src="https://raw.githubusercontent.com/yusuketomoto/chainer-fast-neuralstyle/master/sample_images/tubingen.jpg" height="200px">
 
