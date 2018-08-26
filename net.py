@@ -5,6 +5,37 @@ import chainer
 import chainer.links as L
 import chainer.functions as F
 from chainer import Variable
+from chainer import cuda, link, function, initializers
+
+class InstanceNormalization(link.Link):
+    def __init__(self, nc, dtype=np.float32):
+        super(InstanceNormalization, self).__init__()
+        self.nc = nc
+        self.dtype = dtype
+        self.bn = None
+        self.prev_batch = None
+        # self._device_id =  cuda.get_device()
+
+        self.add_param('gamma', nc, dtype=dtype)
+        initializers.Uniform(self.gamma.data)
+
+        self.add_param('beta', nc, dtype=dtype)
+        initializers.Zero(self.beta.data)
+
+    def __call__(self, x, test=True):
+        n, c, h, w = x.shape
+        assert(c == self.nc)
+        if n != self.prev_batch:
+            self.bn = L.BatchNormalization(n*c)
+            # print(self.bn.device)
+            # if self._device_id >= 0:
+            self.bn.to_gpu()
+            self.bn.gamma = F.tile(self.gamma, n)
+            self.bn.beta = F.tile(self.beta, n)
+            self.prev_batch = n
+
+        x = F.reshape(x, (1, n*c, h, w))
+        return F.reshape(self.bn(x), (n, c, h, w))
 
 class ResidualBlock(chainer.Chain):
     def __init__(self, n_in, n_out, stride=1, ksize=3):
@@ -16,18 +47,18 @@ class ResidualBlock(chainer.Chain):
             b2=L.BatchNormalization(n_out)
         )
 
-    def __call__(self, x, test):
-        h = F.relu(self.b1(self.c1(x), test=test))
-        h = self.b2(self.c2(h), test=test)
-        if x.data.shape != h.data.shape:
-            xp = chainer.cuda.get_array_module(x.data)
-            n, c, hh, ww = x.data.shape
-            pad_c = h.data.shape[1] - c
-            p = xp.zeros((n, pad_c, hh, ww), dtype=xp.float32)
-            p = chainer.Variable(p, volatile=test)
-            x = F.concat((p, x))
-            if x.data.shape[2:] != h.data.shape[2:]:
-                x = F.average_pooling_2d(x, 1, 2)
+    def __call__(self, x):
+        h = F.relu(self.b1(self.c1(x)))
+        h = self.b2(self.c2(h))
+        # if x.data.shape != h.data.shape:
+        #     xp = chainer.cuda.get_array_module(x.data)
+        #     n, c, hh, ww = x.data.shape
+        #     pad_c = h.data.shape[1] - c
+        #     p = xp.zeros((n, pad_c, hh, ww), dtype=xp.float32)
+        #     p = chainer.Variable(p)
+        #     x = F.concat((p, x))
+        #     if x.data.shape[2:] != h.data.shape[2:]:
+        #         x = F.average_pooling_2d(x, 1, 2)
         return h + x
 
 class FastStyleNet(chainer.Chain):
@@ -41,9 +72,9 @@ class FastStyleNet(chainer.Chain):
             r3=ResidualBlock(128, 128),
             r4=ResidualBlock(128, 128),
             r5=ResidualBlock(128, 128),
-            d1=L.Deconvolution2D(128, 64, 4, stride=2, pad=1),
-            d2=L.Deconvolution2D(64, 32, 4, stride=2, pad=1),
-            d3=L.Deconvolution2D(32, 3, 9, stride=1, pad=4),
+            d1=L.Convolution2D(128, 64, 3, stride=1, pad=1),
+            d2=L.Convolution2D(64, 32, 3, stride=1, pad=1),
+            d3=L.Convolution2D(32, 3, 9, stride=1, pad=4),
             b1=L.BatchNormalization(32),
             b2=L.BatchNormalization(64),
             b3=L.BatchNormalization(128),
@@ -52,18 +83,21 @@ class FastStyleNet(chainer.Chain):
         )
 
     def __call__(self, x, test=False):
-        h = self.b1(F.elu(self.c1(x)), test=test)
-        h = self.b2(F.elu(self.c2(h)), test=test)
-        h = self.b3(F.elu(self.c3(h)), test=test)
-        h = self.r1(h, test=test)
-        h = self.r2(h, test=test)
-        h = self.r3(h, test=test)
-        h = self.r4(h, test=test)
-        h = self.r5(h, test=test)
-        h = self.b4(F.elu(self.d1(h)), test=test)
-        h = self.b5(F.elu(self.d2(h)), test=test)
+        h = F.relu(self.b1(self.c1(x)))
+        h = F.relu(self.b2(self.c2(h)))
+        h = F.relu(self.b3(self.c3(h)))
+        h = self.r1(h)
+        h = self.r2(h)
+        h = self.r3(h)
+        h = self.r4(h)
+        h = self.r5(h)
+        h = F.unpooling_2d(h, 2, 2)
+        h = F.relu(self.b4(self.d1(h)))
+        h = F.unpooling_2d(h, 2, 2)
+        h = F.relu(self.b5(self.d2(h)))
         y = self.d3(h)
-        return (F.tanh(y)+1)*127.5
+        # return (F.tanh(y)+1)*127.5
+        return F.sigmoid(y) * 255.0
 
 class VGG(chainer.Chain):
     def __init__(self):
